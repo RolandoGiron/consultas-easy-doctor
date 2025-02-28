@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Editar Visita - Clínica Dermatológica</title>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1 class="text-center">
+        <i class="fas fa-edit"></i>
+        Editar Visita - {{ paciente.nombre }}
+    </h1>
+    
+    <div class="form">
+        <form action="/pacientes/{{paciente.id}}/visitas/edit/{{visita.id}}" 
+              method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label for="diagnostico">Diagnóstico:</label>
+                <textarea name="diagnostico" id="diagnostico" required>{{ visita.diagnostico }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="receta">Receta:</label>
+                <textarea name="receta" id="receta" required>{{ visita.receta }}</textarea>
+            </div>
+            <div class="form-group">
+                <label for="cobro">Cobro ($):</label>
+                <input type="number" step="0.01" name="cobro" id="cobro" 
+                       value="{{ "%.2f"|format(visita.cobro) }}" required>
+            </div>
+            <div class="form-group">
+                <label for="foto">Fotografía:</label>
+                {% if visita.foto_path %}
+                <div class="current-photo">
+                    <img src="{{ url_for('static', filename='uploads/' + visita.foto_path) }}" 
+                         width="100" class="img-thumbnail">
+                    <p>Foto actual</p>
+                </div>
+                {% endif %}
+                <input type="file" name="foto" id="foto" accept="image/*" class="form-control-file">
+                <small class="text-muted">Deja vacío para mantener la foto actual</small>
+            </div>
+            <div class="button-group">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Guardar Cambios
+                </button>
+                <a href="/pacientes/{{paciente.id}}/visitas" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

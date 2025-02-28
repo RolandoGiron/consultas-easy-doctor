@@ -1,0 +1,103 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Control de Pacientes - Clínica Dermatológica</title>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1 class="text-center">Gestión de Pacientes</h1>
+
+    <!-- Agregar el formulario de búsqueda -->
+    <div class="search-form mb-2">
+        <h3><i class="fas fa-search"></i> Buscar Paciente</h3>
+        <form action="/pacientes" method="GET" class="search-container">
+            <div class="search-group">
+                <input type="text" name="nombre" id="search_nombre" 
+                       placeholder="Buscar por nombre..." 
+                       value="{{ request.args.get('nombre', '') }}">
+                <input type="text" name="telefono" id="search_telefono" 
+                       placeholder="Buscar por teléfono..."
+                       value="{{ request.args.get('telefono', '') }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                {% if request.args.get('nombre') or request.args.get('telefono') %}
+                <a href="/pacientes" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Limpiar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    {% if pacientes|length < 1 %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i>
+        {% if request.args.get('nombre') or request.args.get('telefono') %}
+        No se encontraron pacientes con los criterios de búsqueda.
+        {% else %}
+        No hay pacientes registrados. Registre uno nuevo abajo.
+        {% endif %}
+    </div>
+    {% else %}    
+    <div class="table-responsive">
+        <table>
+            <tr>
+                <th><i class="fas fa-user"></i> Nombre</th>
+                <th><i class="fas fa-phone"></i> Teléfono</th>
+                <th><i class="fas fa-birthday-cake"></i> Fecha Nacimiento</th>
+                <th><i class="fas fa-map-marker-alt"></i> Dirección</th>
+                <th><i class="fas fa-cog"></i> Acciones</th>
+            </tr>
+            {% for paciente in pacientes %}
+                <tr>
+                    <td>{{ paciente.nombre }}</td>
+                    <td>{{ paciente.telefono }}</td>
+                    <td>{{ paciente.fecha_nacimiento.strftime('%d/%m/%Y') }}</td>
+                    <td>{{ paciente.direccion }}</td>
+                    <!-- Modificar la sección de acciones en la tabla -->
+                    <td class="actions">
+                        <a href="/pacientes/{{paciente.id}}/visitas" class="btn btn-primary">
+                            <i class="fas fa-eye"></i> Ver
+                        </a>
+                        <a href="/pacientes/edit/{{paciente.id}}" class="btn btn-warning">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                        <a href="/pacientes/delete/{{paciente.id}}" class="btn btn-danger" 
+                           onclick="return confirm('¿Está seguro de eliminar este paciente?')">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endif %}
+
+    <div class="form mt-2">
+        <h3><i class="fas fa-user-plus"></i> Registrar Nuevo Paciente</h3>
+        <form action="/pacientes" method="POST">
+            <div class="form-group">
+                <label for="nombre">Nombre Completo:</label>
+                <input type="text" name="nombre" id="nombre" required placeholder="Ingrese el nombre completo">
+            </div>
+            <div class="form-group">
+                <label for="telefono">Teléfono:</label>
+                <input type="tel" name="telefono" id="telefono" placeholder="Ingrese el teléfono">
+            </div>
+            <div class="form-group">
+                <label for="fecha_nacimiento">Fecha de Nacimiento:</label>
+                <input type="date" name="fecha_nacimiento" id="fecha_nacimiento" required>
+            </div>
+            <div class="form-group">
+                <label for="direccion">Dirección:</label>
+                <textarea name="direccion" id="direccion" placeholder="Ingrese la dirección completa"></textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save"></i> Registrar Paciente
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

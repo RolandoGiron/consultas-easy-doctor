@@ -1,0 +1,71 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Control de Pacientes - Clínica Dermatológica</title>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1 class="text-center">Gestión de Pacientes</h1>
+
+    <!-- Agregar el formulario de búsqueda -->
+    <div class="search-form mb-2">
+        <h3><i class="fas fa-search"></i> Buscar Paciente</h3>
+        <form action="/pacientes" method="GET" class="search-container">
+            <div class="search-group">
+                <input type="text" name="nombre" id="search_nombre" 
+                       placeholder="Buscar por nombre..." 
+                       value="{{ request.args.get('nombre', '') }}">
+                <input type="text" name="telefono" id="search_telefono" 
+                       placeholder="Buscar por teléfono..."
+                       value="{{ request.args.get('telefono', '') }}">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-search"></i> Buscar
+                </button>
+                {% if request.args.get('nombre') or request.args.get('telefono') %}
+                <a href="/pacientes" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Limpiar
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    {% if pacientes|length < 1 %}
+    <div class="alert alert-info text-center">
+        <i class="fas fa-info-circle"></i>
+        {% if request.args.get('nombre') or request.args.get('telefono') %}
+        No se encontraron pacientes con los criterios de búsqueda.
+        {% else %}
+        No hay pacientes registrados. Registre uno nuevo abajo.
+        {% endif %}
+    </div>
+    {% else %}
+    <table>
+        <tr>
+            <th>Task</th>
+            <th>Added</th>
+            <th>Actions</th>
+        </tr>
+        {% for task in tasks %}
+            <tr>
+                <td>{{ task.content }}</td>
+                <td>{{ task.date_created.date() }}</td>
+                <td>
+                    <a href="/delete/{{task.id}}">Delete</a>
+                    <br>
+                    <a href="/update/{{task.id}}">Update</a>
+                </td>
+            </tr>
+        {% endfor %}
+    </table>
+    {% endif %}
+
+    <div class="form">
+        <form action="/" method="POST">
+            <input type="text" name="content" id="content">
+            <input type="submit" value="Add Task">
+        </form>
+    </div>
+</div>
+{% endblock %}
