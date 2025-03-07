@@ -38,17 +38,6 @@
                        value="{{ paciente.dui }}"
                        pattern="\d{8}-\d" title="Formato: NNNNNNNN-N (ejemplo: 02786711-9)">
             </div>
-            <div class="form-group">
-                <label for="categoria">Categoría:</label>
-                <input type="text" name="categoria" id="categoria" required 
-                       list="categorias-list" value="{{ paciente.categoria.nombre }}"
-                       placeholder="Seleccione o escriba una categoría">
-                <datalist id="categorias-list">
-                    {% for categoria in categorias %}
-                    <option value="{{ categoria.nombre }}">
-                    {% endfor %}
-                </datalist>
-            </div>
             <div class="button-group">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Guardar Cambios

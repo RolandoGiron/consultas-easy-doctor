@@ -15,12 +15,24 @@
         <h3><i class="fas fa-plus-circle"></i> Registrar Nueva Visita</h3>
         <form action="/pacientes/{{paciente.id}}/visitas" method="POST" enctype="multipart/form-data">
             <div class="form-group">
+                <label for="categoria">Categoría:</label>
+                <input type="text" name="categoria" id="categoria" required 
+                       placeholder="Ingrese la categoría de la visita">
+            </div>
+            <div class="form-group">
                 <label for="diagnostico">Diagnóstico:</label>
-                <textarea name="diagnostico" id="diagnostico" required placeholder="Ingrese el diagnóstico detallado"></textarea>
+                <textarea name="diagnostico" id="diagnostico" required 
+                          placeholder="Ingrese el diagnóstico detallado" rows="3"></textarea>
             </div>
             <div class="form-group">
                 <label for="receta">Receta:</label>
-                <textarea name="receta" id="receta" required placeholder="Ingrese la receta médica"></textarea>
+                <textarea name="receta" id="receta" required 
+                          placeholder="Ingrese la receta médica" rows="6" 
+                          style="font-family: monospace;"></textarea>
+            </div>
+            <div class="form-group">
+                <label for="fecha_proxima">Fecha Próxima Visita (opcional):</label>
+                <input type="date" name="fecha_proxima" id="fecha_proxima">
             </div>
             <div class="form-group">
                 <label for="cobro">Cobro ($):</label>
@@ -30,9 +42,14 @@
                 <label for="foto">Fotografía:</label>
                 <input type="file" name="foto" id="foto" accept="image/*" class="form-control-file">
             </div>
-            <button type="submit" class="btn btn-primary">
-                <i class="fas fa-save"></i> Registrar Visita
-            </button>
+            <div class="button-group">
+                <button type="submit" name="action" value="save" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Registrar Visita
+                </button>
+                <button type="submit" name="action" value="print" class="btn btn-info">
+                    <i class="fas fa-print"></i> Guardar e Imprimir Receta
+                </button>
+            </div>
         </form>
     </div>
 
@@ -46,8 +63,10 @@
         <table>
             <tr>
                 <th><i class="fas fa-calendar"></i> Fecha y Hora</th>
+                <th><i class="fas fa-tag"></i> Categoría</th>
                 <th><i class="fas fa-stethoscope"></i> Diagnóstico</th>
                 <th><i class="fas fa-prescription"></i> Receta</th>
+                <th><i class="fas fa-calendar-alt"></i> Próxima Visita</th>
                 <th><i class="fas fa-dollar-sign"></i> Cobro</th>
                 <th><i class="fas fa-camera"></i> Foto</th>
                 <th><i class="fas fa-cog"></i> Acciones</th>
@@ -55,8 +74,16 @@
             {% for visita in visitas %}
                 <tr>
                     <td>{{ visita.fecha_hora.strftime('%d/%m/%Y %H:%M') }}</td>
+                    <td>{{ visita.categoria }}</td>
                     <td>{{ visita.diagnostico }}</td>
-                    <td>{{ visita.receta }}</td>
+                    <td style="white-space: pre-wrap;">{{ visita.receta }}</td>
+                    <td>
+                        {% if visita.fecha_proxima %}
+                            {{ visita.fecha_proxima.strftime('%d/%m/%Y') }}
+                        {% else %}
+                            <span class="text-muted">No programada</span>
+                        {% endif %}
+                    </td>
                     <td>${{ "%.2f"|format(visita.cobro) }}</td>
                     <td>
                         {% if visita.foto_path %}
@@ -68,6 +95,10 @@
                         {% endif %}
                     </td>
                     <td class="actions">
+                        <a href="/pacientes/{{paciente.id}}/visitas/{{visita.id}}/receta" 
+                           class="btn btn-info" target="_blank">
+                            <i class="fas fa-print"></i> Imprimir Receta
+                        </a>
                         <a href="/pacientes/{{paciente.id}}/visitas/edit/{{visita.id}}" 
                            class="btn btn-warning">
                             <i class="fas fa-edit"></i> Editar

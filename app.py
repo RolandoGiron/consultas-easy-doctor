@@ -4,22 +4,17 @@ from datetime import datetime
 import os
 from sqlalchemy.orm import validates
 import re
+import config
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clinica.db'
 app.config['UPLOAD_FOLDER'] = os.path.join('static', 'uploads')
+app.config.from_object(config)
 db = SQLAlchemy(app)
 
 # Asegurarse de que existe el directorio de uploads
 if not os.path.exists(app.config['UPLOAD_FOLDER']):
     os.makedirs(app.config['UPLOAD_FOLDER'])
-
-class Categoria(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nombre = db.Column(db.String(100), unique=True, nullable=False)
-    
-    def __repr__(self):
-        return f'<Categoria {self.nombre}>'
 
 class Paciente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -29,8 +24,6 @@ class Paciente(db.Model):
     fecha_nacimiento = db.Column(db.Date)
     direccion = db.Column(db.String(300))
     fecha_registro = db.Column(db.DateTime, default=datetime.utcnow)
-    categoria_id = db.Column(db.Integer, db.ForeignKey('categoria.id'), nullable=False)
-    categoria = db.relationship('Categoria', backref='pacientes')
     visitas = db.relationship('Visita', backref='paciente', lazy=True)
 
     @validates('dui')
@@ -49,6 +42,8 @@ class Visita(db.Model):
     receta = db.Column(db.Text)
     cobro = db.Column(db.Float)
     foto_path = db.Column(db.String(300))
+    fecha_proxima = db.Column(db.Date, nullable=True)
+    categoria = db.Column(db.String(100))
     paciente_id = db.Column(db.Integer, db.ForeignKey('paciente.id'), nullable=False)
 
     def __repr__(self):
@@ -62,26 +57,13 @@ def lista_pacientes():
         telefono = request.form['telefono']
         fecha_nacimiento = datetime.strptime(request.form['fecha_nacimiento'], '%Y-%m-%d').date()
         direccion = request.form['direccion']
-        categoria_nombre = request.form['categoria'].strip()
-        
-        # Buscar o crear la categoría
-        categoria = Categoria.query.filter_by(nombre=categoria_nombre).first()
-        if not categoria:
-            categoria = Categoria(nombre=categoria_nombre)
-            db.session.add(categoria)
-            try:
-                db.session.flush()  # Guardar la categoría para obtener su ID
-            except:
-                db.session.rollback()
-                return 'Hubo un error al crear la categoría'
         
         nuevo_paciente = Paciente(
             nombre=nombre,
             dui=dui,
             telefono=telefono,
             fecha_nacimiento=fecha_nacimiento,
-            direccion=direccion,
-            categoria_id=categoria.id
+            direccion=direccion
         )
 
         try:
@@ -110,11 +92,9 @@ def lista_pacientes():
         
         # Ordenar y ejecutar la consulta
         pacientes = query.order_by(Paciente.fecha_registro.desc()).all()
-        categorias = Categoria.query.order_by(Categoria.nombre).all()
         
         return render_template('pacientes/index.html', 
                              pacientes=pacientes,
-                             categorias=categorias,
                              request=request)
     
 @app.route('/pacientes/<int:id>/visitas', methods=['GET', 'POST'])
@@ -125,9 +105,12 @@ def visitas_paciente(id):
         diagnostico = request.form['diagnostico']
         receta = request.form['receta']
         cobro = float(request.form['cobro'])
-        foto = request.files.get('foto')
+        categoria = request.form['categoria']
+        fecha_proxima = None
+        if request.form.get('fecha_proxima'):
+            fecha_proxima = datetime.strptime(request.form['fecha_proxima'], '%Y-%m-%d').date()
         
-        # Guardar la foto si se proporcionó una
+        foto = request.files.get('foto')
         foto_path = None
         if foto:
             filename = f"visita_{datetime.now().strftime('%Y%m%d_%H%M%S')}_{foto.filename}"
@@ -139,18 +122,30 @@ def visitas_paciente(id):
             receta=receta,
             cobro=cobro,
             foto_path=foto_path,
+            fecha_proxima=fecha_proxima,
+            categoria=categoria,
             paciente_id=id
         )
 
         try:
             db.session.add(nueva_visita)
             db.session.commit()
-            return redirect(f'/pacientes/{id}/visitas')
-        except:
-            return 'Hubo un error al registrar la visita'
+            
+            # Verificar qué botón se presionó
+            if request.form.get('action') == 'print':
+                return redirect(url_for('imprimir_receta', 
+                                      paciente_id=id, 
+                                      visita_id=nueva_visita.id))
+            return redirect(url_for('visitas_paciente', id=id))
+        except Exception as e:
+            db.session.rollback()
+            return f'Hubo un error al registrar la visita: {str(e)}'
 
     visitas = Visita.query.filter_by(paciente_id=id).order_by(Visita.fecha_hora.desc()).all()
-    return render_template('pacientes/visitas.html', paciente=paciente, visitas=visitas)
+    return render_template('pacientes/visitas.html', 
+                         paciente=paciente, 
+                         visitas=visitas,
+                         config=app.config)
 
 @app.route('/pacientes/delete/<int:id>')
 def eliminar_paciente(id):
@@ -183,18 +178,6 @@ def editar_paciente(id):
         paciente.fecha_nacimiento = datetime.strptime(request.form['fecha_nacimiento'], '%Y-%m-%d').date()
         paciente.direccion = request.form['direccion']
         
-        categoria_nombre = request.form['categoria'].strip()
-        categoria = Categoria.query.filter_by(nombre=categoria_nombre).first()
-        if not categoria:
-            categoria = Categoria(nombre=categoria_nombre)
-            db.session.add(categoria)
-            try:
-                db.session.flush()
-            except:
-                return 'Hubo un error al crear la categoría'
-        
-        paciente.categoria_id = categoria.id
-        
         try:
             db.session.commit()
             return redirect('/pacientes')
@@ -203,8 +186,7 @@ def editar_paciente(id):
                 return 'El DUI ingresado ya existe en la base de datos'
             return 'Hubo un error al actualizar el paciente'
     
-    categorias = Categoria.query.order_by(Categoria.nombre).all()
-    return render_template('pacientes/edit.html', paciente=paciente, categorias=categorias)
+    return render_template('pacientes/edit.html', paciente=paciente)
 
 @app.route('/pacientes/<int:paciente_id>/visitas/edit/<int:visita_id>', methods=['GET', 'POST'])
 def editar_visita(paciente_id, visita_id):
@@ -215,6 +197,10 @@ def editar_visita(paciente_id, visita_id):
         visita.diagnostico = request.form['diagnostico']
         visita.receta = request.form['receta']
         visita.cobro = float(request.form['cobro'])
+        visita.categoria = request.form['categoria']
+        visita.fecha_proxima = None
+        if request.form.get('fecha_proxima'):
+            visita.fecha_proxima = datetime.strptime(request.form['fecha_proxima'], '%Y-%m-%d').date()
         
         foto = request.files.get('foto')
         if foto and foto.filename:
@@ -236,6 +222,18 @@ def editar_visita(paciente_id, visita_id):
             return 'Hubo un error al actualizar la visita'
     
     return render_template('pacientes/edit_visita.html', paciente=paciente, visita=visita)
+
+@app.route('/pacientes/<int:paciente_id>/visitas/<int:visita_id>/receta')
+def imprimir_receta(paciente_id, visita_id):
+    try:
+        visita = Visita.query.get_or_404(visita_id)
+        paciente = Paciente.query.get_or_404(paciente_id)
+        return render_template('pacientes/receta.html', 
+                             visita=visita, 
+                             paciente=paciente,
+                             config=app.config)
+    except Exception as e:
+        return f'Error al generar la receta: {str(e)}'
 
 if __name__ == "__main__":
     with app.app_context():

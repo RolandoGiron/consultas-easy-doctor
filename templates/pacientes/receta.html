@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Receta Médica - {{ paciente.nombre }}</title>
+    <style>
+        @media print {
+            @page {
+                size: letter;
+                margin: 15mm;
+            }
+            
+            .no-print {
+                display: none;
+            }
+
+            body { 
+                font-family: 'Times New Roman', serif;
+                line-height: 1.4;
+                margin: 0;
+                padding: 0;
+                font-size: 11pt;
+            }
+
+            .header {
+                text-align: center;
+                border-bottom: 1px solid #000;
+                padding-bottom: 5mm;
+                margin-bottom: 8mm;
+            }
+
+            .clinica-info {
+                font-size: 14pt;
+                font-weight: bold;
+                margin-bottom: 3mm;
+            }
+
+            .doctor-info {
+                font-size: 11pt;
+                margin-bottom: 3mm;
+            }
+
+            .doctor-info .nombre {
+                font-weight: bold;
+                font-size: 12pt;
+            }
+
+            .paciente-info {
+                margin-bottom: 8mm;
+                padding: 3mm;
+                border: 1px solid #ccc;
+                border-radius: 2mm;
+                background-color: #f9f9f9;
+                font-size: 10pt;
+            }
+
+            .receta {
+                white-space: pre-wrap;
+                margin: 8mm 0;
+                min-height: 100mm;
+                font-size: 11pt;
+                line-height: 1.6;
+                padding: 3mm;
+                border-left: 1px solid #ccc;
+            }
+
+            .firma {
+                text-align: center;
+                margin-top: 15mm;
+            }
+
+            .firma-linea {
+                border-top: 1px solid #000;
+                width: 60mm;
+                margin: 2mm auto;
+            }
+
+            .firma-texto {
+                font-size: 10pt;
+            }
+
+            .footer {
+                position: fixed;
+                bottom: 10mm;
+                left: 0;
+                right: 0;
+                text-align: center;
+                font-size: 9pt;
+                color: #666;
+                border-top: 1px solid #ccc;
+                padding-top: 3mm;
+            }
+        }
+
+        /* Estilos para la vista en pantalla */
+        body {
+            font-family: 'Times New Roman', serif;
+            max-width: 210mm;
+            margin: 20px auto;
+            padding: 20px;
+            background: #fff;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .no-print {
+            text-align: center;
+            margin-top: 20px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .no-print button {
+            padding: 8px 20px;
+            margin: 0 10px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+    </style>
+    <script>
+        function cerrarVentana() {
+            // Redirigir a la página de visitas antes de cerrar
+            window.opener.location.href = '/pacientes/{{paciente.id}}/visitas';
+            window.close();
+        }
+    </script>
+</head>
+<body>
+    <div class="header">
+        <div class="clinica-info">
+            {{ config.CLINICA_NOMBRE }}
+        </div>
+        <div class="doctor-info">
+            <div class="nombre">{{ config.DOCTOR_NOMBRE }}</div>
+            {{ config.DOCTOR_ESPECIALIDAD }}<br>
+            {{ config.DOCTOR_JVPM }}
+        </div>
+    </div>
+
+    <div class="paciente-info">
+        <strong>Paciente:</strong> {{ paciente.nombre }}<br>
+        <strong>Fecha:</strong> {{ visita.fecha_hora.strftime('%d de %B de %Y') }}<br>
+        {% if visita.fecha_proxima %}
+        <strong>Próxima Cita:</strong> {{ visita.fecha_proxima.strftime('%d de %B de %Y') }}<br>
+        {% endif %}
+        <strong>Categoría:</strong> {{ visita.categoria }}
+    </div>
+
+    <div class="receta">
+        <strong>Rp.</strong>
+{{ visita.receta }}
+    </div>
+
+    <div class="firma">
+        <div class="firma-linea"></div>
+        <div class="firma-texto">
+            {{ config.DOCTOR_NOMBRE }}<br>
+            {{ config.DOCTOR_JVPM }}
+        </div>
+    </div>
+
+    <div class="sello">
+        <!-- Aquí podrías agregar una imagen de sello si lo deseas -->
+    </div>
+
+    <div class="footer">
+        {{ config.CLINICA_DIRECCION }} • Tel: {{ config.CLINICA_TELEFONO }} • {{ config.CLINICA_EMAIL }}
+    </div>
+
+    <div class="no-print">
+        <button onclick="window.print()" class="btn btn-primary">
+            <i class="fas fa-print"></i> Imprimir Receta
+        </button>
+        <button onclick="cerrarVentana()" class="btn btn-secondary">
+            <i class="fas fa-times"></i> Cerrar
+        </button>
+    </div>
+</body>
+</html> 
