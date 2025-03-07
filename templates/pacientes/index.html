@@ -45,6 +45,8 @@
         <table>
             <tr>
                 <th><i class="fas fa-user"></i> Nombre</th>
+                <th><i class="fas fa-id-card"></i> DUI</th>
+                <th><i class="fas fa-tag"></i> Categoría</th>
                 <th><i class="fas fa-phone"></i> Teléfono</th>
                 <th><i class="fas fa-birthday-cake"></i> Fecha Nacimiento</th>
                 <th><i class="fas fa-map-marker-alt"></i> Dirección</th>
@@ -53,6 +55,8 @@
             {% for paciente in pacientes %}
                 <tr>
                     <td>{{ paciente.nombre }}</td>
+                    <td>{{ paciente.dui }}</td>
+                    <td>{{ paciente.categoria.nombre }}</td>
                     <td>{{ paciente.telefono }}</td>
                     <td>{{ paciente.fecha_nacimiento.strftime('%d/%m/%Y') }}</td>
                     <td>{{ paciente.direccion }}</td>
@@ -83,8 +87,23 @@
                 <input type="text" name="nombre" id="nombre" required placeholder="Ingrese el nombre completo">
             </div>
             <div class="form-group">
+                <label for="dui">DUI:</label>
+                <input type="text" name="dui" id="dui" required placeholder="NNNNNNNN-N" 
+                       pattern="\d{8}-\d" title="Formato: NNNNNNNN-N (ejemplo: 02786711-9)">
+            </div>
+            <div class="form-group">
                 <label for="telefono">Teléfono:</label>
                 <input type="tel" name="telefono" id="telefono" placeholder="Ingrese el teléfono">
+            </div>
+            <div class="form-group">
+                <label for="categoria">Categoría:</label>
+                <input type="text" name="categoria" id="categoria" required 
+                       list="categorias-list" placeholder="Seleccione o escriba una categoría">
+                <datalist id="categorias-list">
+                    {% for categoria in categorias %}
+                    <option value="{{ categoria.nombre }}">
+                    {% endfor %}
+                </datalist>
             </div>
             <div class="form-group">
                 <label for="fecha_nacimiento">Fecha de Nacimiento:</label>
