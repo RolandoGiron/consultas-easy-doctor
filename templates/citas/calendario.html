@@ -1,0 +1,168 @@
+{% extends 'base.html' %}
+
+{% block head %}
+<title>Calendario de Citas - Clínica Dermatológica</title>
+<style>
+    .calendario {
+        width: 100%;
+        margin-bottom: 20px;
+    }
+    
+    .calendario th {
+        background-color: #f8f9fa;
+        text-align: center;
+        padding: 10px;
+    }
+    
+    .calendario td {
+        height: 100px;
+        width: 14.28%;
+        vertical-align: top;
+        padding: 5px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .dia-actual {
+        background-color: #e3f2fd;
+    }
+    
+    .otro-mes {
+        background-color: #f8f9fa;
+        color: #6c757d;
+    }
+    
+    .cita {
+        background-color: #d4edda;
+        border-radius: 3px;
+        padding: 2px 5px;
+        margin: 2px 0;
+        font-size: 0.9em;
+        cursor: pointer;
+    }
+
+    .navegacion-mes {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+
+    .mes-actual {
+        font-size: 1.5em;
+        font-weight: bold;
+    }
+</style>
+{% endblock %}
+
+{% block body %}
+<div class="content">
+    <h1 class="text-center">
+        <i class="fas fa-calendar-alt"></i>
+        Calendario de Citas
+    </h1>
+
+    <div class="navegacion-mes">
+        <a href="{{ url_for('calendario_citas', year=prev_month.year, month=prev_month.month) }}" 
+           class="btn btn-outline-primary">
+            <i class="fas fa-chevron-left"></i> Mes Anterior
+        </a>
+        <span class="mes-actual">{{ mes_actual.strftime('%B %Y') }}</span>
+        <a href="{{ url_for('calendario_citas', year=next_month.year, month=next_month.month) }}" 
+           class="btn btn-outline-primary">
+            Mes Siguiente <i class="fas fa-chevron-right"></i>
+        </a>
+    </div>
+
+    <table class="calendario">
+        <thead>
+            <tr>
+                <th>Domingo</th>
+                <th>Lunes</th>
+                <th>Martes</th>
+                <th>Miércoles</th>
+                <th>Jueves</th>
+                <th>Viernes</th>
+                <th>Sábado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for semana in calendario %}
+            <tr>
+                {% for dia in semana %}
+                <td class="{% if dia.hoy %}dia-actual{% endif %} 
+                           {% if dia.otro_mes %}otro-mes{% endif %}">
+                    <div class="fecha">{{ dia.dia }}</div>
+                    {% if dia.citas %}
+                        {% for cita in dia.citas %}
+                        <div class="cita" onclick="verDetalleCita({{ cita.id }})">
+                            {{ cita.hora.strftime('%H:%M') }} - {{ cita.paciente.nombre }}
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="acciones">
+        <button class="btn btn-primary" onclick="nuevaCita()">
+            <i class="fas fa-plus"></i> Nueva Cita
+        </button>
+    </div>
+
+    <!-- Modal para Nueva Cita -->
+    <div class="modal fade" id="modalCita" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Nueva Cita</h5>
+                    <button type="button" class="close" data-dismiss="modal">
+                        <span>&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="formCita" action="{{ url_for('crear_cita') }}" method="POST">
+                        <div class="form-group">
+                            <label>Paciente:</label>
+                            <select name="paciente_id" class="form-control" required>
+                                {% for paciente in pacientes %}
+                                <option value="{{ paciente.id }}">{{ paciente.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>Fecha:</label>
+                            <input type="date" name="fecha" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Hora:</label>
+                            <input type="time" name="hora" class="form-control" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Notas:</label>
+                            <textarea name="notas" class="form-control" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" form="formCita" class="btn btn-primary">Guardar Cita</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function nuevaCita() {
+    $('#modalCita').modal('show');
+}
+
+function verDetalleCita(citaId) {
+    // Implementar vista de detalles de la cita
+    window.location.href = `/citas/${citaId}`;
+}
+</script>
+{% endblock %} 

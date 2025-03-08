@@ -5,6 +5,8 @@ import os
 from sqlalchemy.orm import validates
 import re
 import config
+from calendar import monthcalendar
+from datetime import date, timedelta
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///clinica.db'
@@ -48,6 +50,14 @@ class Visita(db.Model):
 
     def __repr__(self):
         return f'<Visita {self.fecha_hora}>'
+
+class Cita(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    fecha = db.Column(db.Date, nullable=False)
+    hora = db.Column(db.Time, nullable=False)
+    notas = db.Column(db.Text)
+    paciente_id = db.Column(db.Integer, db.ForeignKey('paciente.id'), nullable=False)
+    paciente = db.relationship('Paciente', backref='citas')
 
 @app.route('/pacientes', methods=['POST', 'GET'])
 def lista_pacientes():
@@ -127,15 +137,25 @@ def visitas_paciente(id):
             paciente_id=id
         )
 
+        if request.form.get('fecha_proxima'):
+            fecha_proxima = datetime.strptime(request.form['fecha_proxima'], '%Y-%m-%d').date()
+            # Crear automáticamente una cita
+            cita = Cita(
+                fecha=fecha_proxima,
+                hora=datetime.strptime('09:00', '%H:%M').time(),  # Hora por defecto
+                notas=f'Próxima visita programada desde la visita del {datetime.now().strftime("%d/%m/%Y")}',
+                paciente_id=id
+            )
+            db.session.add(cita)
+        
         try:
             db.session.add(nueva_visita)
             db.session.commit()
             
-            # Verificar qué botón se presionó
-            if request.form.get('action') == 'print':
-                return redirect(url_for('imprimir_receta', 
-                                      paciente_id=id, 
-                                      visita_id=nueva_visita.id))
+            if fecha_proxima:
+                return redirect(url_for('calendario_citas', 
+                                      year=fecha_proxima.year, 
+                                      month=fecha_proxima.month))
             return redirect(url_for('visitas_paciente', id=id))
         except Exception as e:
             db.session.rollback()
@@ -234,6 +254,75 @@ def imprimir_receta(paciente_id, visita_id):
                              config=app.config)
     except Exception as e:
         return f'Error al generar la receta: {str(e)}'
+
+@app.route('/calendario')
+@app.route('/calendario/<int:year>/<int:month>')
+def calendario_citas(year=None, month=None):
+    if year is None:
+        year = date.today().year
+    if month is None:
+        month = date.today().month
+
+    mes_actual = date(year, month, 1)
+    prev_month = mes_actual - timedelta(days=1)
+    next_month = (mes_actual + timedelta(days=32)).replace(day=1)
+    
+    # Obtener el calendario del mes
+    cal = monthcalendar(year, month)
+    
+    # Preparar datos del calendario
+    calendario = []
+    for semana in cal:
+        semana_datos = []
+        for dia in semana:
+            if dia == 0:
+                semana_datos.append({
+                    'dia': '',
+                    'otro_mes': True,
+                    'hoy': False,
+                    'citas': []
+                })
+            else:
+                fecha = date(year, month, dia)
+                citas = Cita.query.filter_by(fecha=fecha).all()
+                semana_datos.append({
+                    'dia': dia,
+                    'otro_mes': False,
+                    'hoy': fecha == date.today(),
+                    'citas': citas
+                })
+        calendario.append(semana_datos)
+
+    pacientes = Paciente.query.order_by(Paciente.nombre).all()
+    
+    return render_template('citas/calendario.html',
+                         calendario=calendario,
+                         mes_actual=mes_actual,
+                         prev_month=prev_month,
+                         next_month=next_month,
+                         pacientes=pacientes)
+
+@app.route('/citas/crear', methods=['POST'])
+def crear_cita():
+    try:
+        fecha = datetime.strptime(request.form['fecha'], '%Y-%m-%d').date()
+        hora = datetime.strptime(request.form['hora'], '%H:%M').time()
+        
+        cita = Cita(
+            fecha=fecha,
+            hora=hora,
+            notas=request.form.get('notas', ''),
+            paciente_id=request.form['paciente_id']
+        )
+        
+        db.session.add(cita)
+        db.session.commit()
+        
+        return redirect(url_for('calendario_citas', 
+                              year=fecha.year, 
+                              month=fecha.month))
+    except Exception as e:
+        return f'Error al crear la cita: {str(e)}'
 
 if __name__ == "__main__":
     with app.app_context():
